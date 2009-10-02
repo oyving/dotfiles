@@ -6,6 +6,9 @@
 if [ ! -d /etc/bash_completion.d ]; then
     source ./bash.d/ubuntu
     source ./bash.d/completion
+else
+    source /etc/bash.bashrc
+    source /etc/bash_completion
 fi
 
 # exclude some directories from common tools
