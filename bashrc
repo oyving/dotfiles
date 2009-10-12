@@ -1,4 +1,4 @@
-# -*- sh-mode -*-
+# -*- sh -*-
 #
 
 # some places do not have the ubuntu completion, so we maintain a local copy
