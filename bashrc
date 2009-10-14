@@ -13,7 +13,7 @@ fi
 
 # exclude some directories from common tools
 alias grep='grep --exclude-dir=".svn" --exclude-dir=".git" --exclude-dir=CVS'
-export FIGNORE=.svn:.git:CVS
+export FIGNORE=".svn:.git:CVS:~"
 
 # make sure we have a proper light-weight editor for all those commits
 export EDITOR=vim
