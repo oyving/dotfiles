@@ -6,14 +6,11 @@
 (require 'cl)
 
 ;; on a Mac we want some other settings
-(when (eq window-system 'mac)
+(when (eq window-system 'ns)
   ;; get a black background and white font as default
   (setq default-frame-alist
 	'((foreground-color . "white")
-	  (background-color . "black")))
-  ;; change the font
-  (fixed-width-set-default-fontset
-   "-apple-andale mono-medium-r-normal--12-*-*-*-*-*-iso10646-1"))
+	  (background-color . "black"))))
 
 ;; turn off some of the more annoying features appearing after Emacs 21
 (when (>= emacs-major-version 21)
@@ -63,6 +60,17 @@
 
 ;; set load-path
 (add-to-list 'load-path (expand-file-name "~/.emacs.d/lib"))
+
+;; add scala-mode
+(add-to-list 'load-path (expand-file-name "~/.emacs.d/lib/scala-mode"))
+(when (require 'scala-mode-auto nil nil)
+  (setf scala-mode-indent:step 4))
+
+;; add slime for lispy goodness
+(add-to-list 'load-path (expand-file-name "~/.emacs.d/lib/slime"))
+(when (require 'slime nil nil)
+  (setf inferior-lisp-program "/opt/local/bin/sbcl")
+  (slime-setup))
 
 ;; start the emacs server
 (server-start)
