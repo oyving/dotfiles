@@ -30,28 +30,9 @@
                (and (zerop i) (null list)))))
     (sequence (= (length seq) n))))
 
-(declaim (inline ensure-list))
-(defun ensure-list (thing)
-  (if (listp thing) thing (list thing)))
-
 (declaim (inline memq))
 (defun memq (item list)
   (member item list :test #'eq))
-
-(defun remove-from-tree-if (predicate tree)
-  (cond ((atom tree) tree)
-        ((funcall predicate (car tree))
-         (remove-from-tree-if predicate (cdr tree)))
-        (t
-         (cons (remove-from-tree-if predicate (car tree)) 
-               (remove-from-tree-if predicate (cdr tree))))))
-
-(defun remove-from-tree (item tree)
-  (remove-from-tree-if #'(lambda (x) (eql x item)) tree))
-
-(defun maybecall (bool fn &rest args)
-  "Call FN with ARGS if BOOL is T. Otherwise return ARGS as multiple values."
-  (if bool (apply fn args) (values-list args)))
 
 (defun exactly-one-p (&rest values)
   "If exactly one value in VALUES is non-NIL, this value is returned.
@@ -70,19 +51,10 @@ Otherwise NIL is returned."
       (special-operator-p symbol)
       (member symbol '(declare declaim))))
 
-(defun valid-operator-name-p (string)
-  "Is STRING the name of a function, macro, or special-operator?"
-  (let ((symbol (parse-symbol string)))
-    (valid-operator-symbol-p symbol)))
-
-(defun valid-function-name-p (form)
-  (and (match form
-         ((#'symbolp _)         t)
-         (('setf (#'symbolp _)) t)
-         (_                     nil))
+(defun function-exists-p (form)
+  (and (valid-function-name-p form)
        (fboundp form)
        t))
-
 
 (defmacro multiple-value-or (&rest forms)
   (if (null forms)
@@ -164,7 +136,6 @@ Otherwise NIL is returned."
 (defun empty-arg-p (dummy)
   (and (arglist-dummy-p dummy)
        (zerop (length (arglist-dummy.string-representation dummy)))))
-
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +lambda-list-keywords+
@@ -261,18 +232,19 @@ Otherwise NIL is returned."
     (let ((index 0))
       (pprint-logical-block (nil nil :prefix "(" :suffix ")")
         (when operator
-          (princ-arg operator))
+          (print-arg operator)
+          (pprint-indent :current 1))   ; 1 due to possibly added space
         (do-decoded-arglist (remove-given-args arglist provided-args)
           (&provided (arg)
              (space)
-             (princ-arg arg)
+             (print-arg arg)
              (incf index))
           (&required (arg)
              (space)
              (if (arglist-p arg)
                  (print-arglist-recursively arg :index index)
                  (with-highlighting (:index index)
-                   (princ-arg arg)))
+                   (print-arg arg)))
              (incf index))
           (&optional :initially
              (when (arglist.optional-args arglist)
@@ -284,12 +256,13 @@ Otherwise NIL is returned."
                  (print-arglist-recursively arg :index index)
                  (with-highlighting (:index index)
                    (if (null init-value)
-                       (princ-arg arg)
+                       (print-arg arg)
                        (format t "~:@<~A ~S~@:>" arg init-value))))
              (incf index))
           (&key :initially
              (when (arglist.key-p arglist)
-               (space) (princ '&key)))
+               (space)
+               (princ '&key)))
           (&key (keyword arg init)
              (space)
              (if (arglist-p arg)
@@ -304,7 +277,7 @@ Otherwise NIL is returned."
                          ((not (keywordp keyword))
                           (format t "~:@<(~S ..)~@:>" keyword))
                          (t
-                          (princ-arg keyword))))))
+                          (princ keyword))))))
           (&key :finally
              (when (arglist.allow-other-keys-p arglist)
                (space)
@@ -315,7 +288,7 @@ Otherwise NIL is returned."
                (princ '&any)))
           (&any (arg)
              (space)
-             (prin1-arg arg))
+             (print-arg arg))
           (&rest (args bodyp)
              (space)
              (princ (if bodyp '&body '&rest))
@@ -323,19 +296,17 @@ Otherwise NIL is returned."
              (if (arglist-p args)
                  (print-arglist-recursively args :index index)
                  (with-highlighting (:index index)
-                   (princ-arg args))))
+                   (print-arg args))))
           ;; FIXME: add &UNKNOWN-JUNK?
           )))))
 
-(defun princ-arg (arg)
-  (princ (if (arglist-dummy-p arg)
-             (arglist-dummy.string-representation arg)
-             arg)))
-
-(defun prin1-arg (arg)
-  (if (arglist-dummy-p arg)
-      (princ (arglist-dummy.string-representation arg))
-      (prin1 arg)))
+(defun print-arg (arg)
+  (let ((arg (if (arglist-dummy-p arg)
+                 (arglist-dummy.string-representation arg)
+                 arg)))
+    (if (keywordp arg)
+        (prin1 arg)
+        (princ arg))))
 
 (defun print-decoded-arglist-as-template (decoded-arglist &key
                                           (prefix "(") (suffix ")"))
@@ -354,6 +325,7 @@ Otherwise NIL is returned."
              (pprint-newline :fill)))
       (pprint-logical-block (nil nil :prefix prefix :suffix suffix)
         (do-decoded-arglist decoded-arglist
+          (&provided ())  ; do nothing; provided args are in the buffer already.
           (&required (arg)
             (space) (print-arg-or-pattern arg))
           (&optional (arg)
@@ -379,27 +351,37 @@ Otherwise NIL is returned."
     (*print-readably* . nil)
     (*print-level*    . 10)
     (*print-length*   . 20)
-    (*print-escape*   . nil))) ; no package qualifiers.
+    (*print-escape*   . nil)))
+
+(defvar *arglist-show-packages* t)
+
+(defmacro with-arglist-io-syntax (&body body)
+  (let ((package (gensym)))
+    `(let ((,package *package*))
+       (with-standard-io-syntax
+         (let ((*package* (if *arglist-show-packages*
+                              *package*
+                              ,package)))
+           (with-bindings *arglist-pprint-bindings*
+             ,@body))))))
 
 (defun decoded-arglist-to-string (decoded-arglist
                                   &key operator highlight
-                                  print-right-margin print-lines)
+                                  print-right-margin)
   (with-output-to-string (*standard-output*)
-    (with-standard-io-syntax
-      (with-bindings *arglist-pprint-bindings*
-	(let ((*print-right-margin* print-right-margin)
-	      (*print-lines* print-lines))
-	  (print-decoded-arglist decoded-arglist 
-                                 :operator operator 
-                                 :highlight highlight))))))
+    (with-arglist-io-syntax
+      (let ((*print-right-margin* print-right-margin))
+        (print-decoded-arglist decoded-arglist 
+                               :operator operator 
+                               :highlight highlight)))))
 
-(defun decoded-arglist-to-template-string (decoded-arglist &key (prefix "(") (suffix ")"))
+(defun decoded-arglist-to-template-string (decoded-arglist
+                                           &key (prefix "(") (suffix ")"))
   (with-output-to-string (*standard-output*)
-    (with-standard-io-syntax
-      (with-bindings *arglist-pprint-bindings*
-        (print-decoded-arglist-as-template decoded-arglist
-                                           :prefix prefix
-                                           :suffix suffix)))))
+    (with-arglist-io-syntax
+      (print-decoded-arglist-as-template decoded-arglist
+                                         :prefix prefix
+                                         :suffix suffix))))
 
 ;;;; Arglist Decoding / Encoding
 
@@ -522,8 +504,9 @@ Return an OPTIONAL-ARG structure."
     for arg = (if (consp arglist)
                   (pop arglist)
                   (progn
-                    (setf mode '&rest)
-                    arglist))
+                    (prog1 arglist
+                      (setf mode '&rest
+                            arglist nil))))
     do (cond
          ((eql mode '&unknown-junk)
           ;; don't leave this mode -- we don't know how the arglist
@@ -570,7 +553,7 @@ Return an OPTIONAL-ARG structure."
                (push arg (arglist.known-junk result)))
             (&any
                (push arg (arglist.any-args result))))))
-    until (atom arglist)
+        until (null arglist)
     finally (nreversef (arglist.required-args result))
     finally (nreversef (arglist.optional-args result))
     finally (nreversef (arglist.keyword-args result))
@@ -935,6 +918,9 @@ If the arglist is not available, return :NOT-AVAILABLE."))
 		    (return-from do-decoded-arglist)
 		    (pop ,list))))
     (do-decoded-arglist decoded-arglist
+      (&provided ()
+       (assert (eq (pop-or-return args)
+                   (pop (arglist.provided-args decoded-arglist)))))
       (&required ()
        (pop-or-return args)
        (pop (arglist.required-args decoded-arglist)))
@@ -962,6 +948,7 @@ If the arglist is not available, return :NOT-AVAILABLE."))
       :not-available
       (arglist-dispatch (car form) (cdr form))))
 
+(export 'arglist-dispatch)
 (defgeneric arglist-dispatch (operator arguments)
   ;; Default method
   (:method (operator arguments)
@@ -978,20 +965,23 @@ If the arglist is not available, return :NOT-AVAILABLE."))
 
 (defmethod arglist-dispatch ((operator (eql 'defmethod)) arguments)
   (match (cons operator arguments)
-    (('defmethod (#'valid-function-name-p gf-name) . _)
+    (('defmethod (#'function-exists-p gf-name) . rest)
      (let ((gf (fdefinition gf-name)))
        (when (typep gf 'generic-function)
          (with-available-arglist (arglist) (decode-arglist (arglist gf))
-           (return-from arglist-dispatch
-             (make-arglist :provided-args (list gf-name)
-                           :required-args (list arglist)
-                           :rest "body" :body-p t))))))
+           (let ((qualifiers (loop for x in rest
+                                   until (or (listp x) (empty-arg-p x))
+                                   collect x)))
+             (return-from arglist-dispatch
+               (make-arglist :provided-args (cons gf-name qualifiers)
+                             :required-args (list arglist)
+                             :rest "body" :body-p t)))))))
     (_)) ; Fall through
   (call-next-method))
 
 (defmethod arglist-dispatch ((operator (eql 'define-compiler-macro)) arguments)
   (match (cons operator arguments)
-    (('define-compiler-macro (#'valid-function-name-p gf-name) . _)
+    (('define-compiler-macro (#'function-exists-p gf-name) . _)
      (let ((gf (fdefinition gf-name)))
        (with-available-arglist (arglist) (decode-arglist (arglist gf))
          (return-from arglist-dispatch
@@ -1022,7 +1012,7 @@ If the arglist is not available, return :NOT-AVAILABLE."))
              (make-arglist
               :required-args (list (make-arglist
                                     :required-args (list typespec-arglist)
-                                    :rest '#:vars)))))
+                                    :rest '#:variables)))))
           (('declare (decl-identifier . decl-args))
            (decoded-arglist-for-declaration decl-identifier decl-args))
           (_ (make-arglist :rest '#:declaration-specifiers))))))
@@ -1051,7 +1041,7 @@ If the arglist is not available, return :NOT-AVAILABLE."))
          (make-arglist
           :required-args (list (make-arglist
                                 :required-args (list typespec-arglist)
-                                :rest '#:vars)))))
+                                :rest '#:variables)))))
       (_ :not-available))))
 
 (defun decoded-arglist-for-declaration (decl-identifier decl-args)
@@ -1071,21 +1061,7 @@ If the arglist is not available, return :NOT-AVAILABLE."))
        (setf (arglist.provided-args arglist) (list type-specifier))
        arglist))))
 
-
 ;;; Slimefuns
-  
-(defslimefun variable-desc-for-echo-area (variable-name)
-  "Return a short description of VARIABLE-NAME, or NIL."
-  (with-buffer-syntax ()
-    (let ((sym (parse-symbol variable-name)))
-      (if (and sym (boundp sym))
-          (let ((*print-pretty* t) (*print-level* 4)
-                (*print-length* 10) (*print-lines* 1)
-		(*print-readably* nil))
-	    (call/truncated-output-to-string
-	     75 (lambda (s)
-		  (format s "~A => ~S" sym (symbol-value sym)))))
-          :not-available))))
 
 ;;; We work on a RAW-FORM, or BUFFER-FORM, which represent the form at
 ;;; user's point in Emacs. A RAW-FORM looks like
@@ -1108,28 +1084,49 @@ If the arglist is not available, return :NOT-AVAILABLE."))
 ;;; %CURSOR-MARKER%)). Only the forms up to point should be
 ;;; considered.
 
-(defslimefun arglist-for-echo-area (raw-form &key print-right-margin print-lines)
+(defslimefun autodoc (raw-form &key print-right-margin)
   "Return a string representing the arglist for the deepest subform in
 RAW-FORM that does have an arglist. The highlighted parameter is
 wrapped in ===> X <===."
   (handler-bind ((serious-condition
                   #'(lambda (c)
                       (unless (debug-on-swank-error)
-                        (let ((*print-right-margin* print-right-margin)
-                              (*print-lines* print-lines))
-                          (return-from arglist-for-echo-area
+                        (let ((*print-right-margin* print-right-margin))
+                          (return-from autodoc
                             (format nil "Arglist Error: \"~A\"" c)))))))
-      (with-buffer-syntax ()
-        (multiple-value-bind (form arglist)
-            (find-subform-with-arglist (parse-raw-form raw-form))
-          (with-available-arglist (arglist) arglist
-            (destructuring-bind (operator . args) form
-              (decoded-arglist-to-string
-               arglist
-               :print-right-margin print-right-margin
-               :print-lines print-lines
-               :operator operator
-               :highlight (arglist-path-to-parameter arglist args))))))))
+    (with-buffer-syntax ()
+      (multiple-value-bind (form arglist obj-at-cursor form-path)
+          (find-subform-with-arglist (parse-raw-form raw-form))
+        (cond ((boundp-and-interesting obj-at-cursor)
+               (print-variable-to-string obj-at-cursor))
+              (t
+               (with-available-arglist (arglist) arglist
+                 (decoded-arglist-to-string
+                  arglist
+                  :print-right-margin print-right-margin
+                  :operator (car form)
+                  :highlight (form-path-to-arglist-path form-path
+                                                        form
+                                                        arglist)))))))))
+
+(defun boundp-and-interesting (symbol)
+  (and symbol
+       (symbolp symbol)
+       (boundp symbol)
+       (not (memq symbol '(cl:t cl:nil)))
+       (not (keywordp symbol))))
+
+(defun print-variable-to-string (symbol)
+  "Return a short description of VARIABLE-NAME, or NIL."
+  (let ((*print-pretty* t) (*print-level* 4)
+        (*print-length* 10) (*print-lines* 1)
+        (*print-readably* nil)
+        (value (symbol-value symbol)))
+    (call/truncated-output-to-string
+     75 (lambda (s)
+          (without-printing-errors (:object value :stream s)
+            (format s "~A ~A~S" symbol *echo-area-prefix* value))))))
+
 
 (defslimefun complete-form (raw-form)
   "Read FORM-STRING in the current buffer package, then complete it
@@ -1142,7 +1139,7 @@ wrapped in ===> X <===."
         (find-immediately-containing-arglist (parse-raw-form raw-form))
       (with-available-arglist (arglist) arglist
         (decoded-arglist-to-template-string
-         (delete-given-args arglist 
+         (delete-given-args arglist
                             (remove-if #'empty-arg-p provided-args
                                        :from-end t :count 1))
          :prefix "" :suffix "")))))
@@ -1177,21 +1174,29 @@ to the context provided by RAW-FORM."
 (defparameter +cursor-marker+ '%cursor-marker%)
 
 (defun find-subform-with-arglist (form)
-  "Returns two values: the appropriate subform of FORM which is close
-to the +CURSOR-MARKER+ and whose operator is valid and has an
-arglist. Second value is the arglist. The +CURSOR-MARKER+ is removed
-from the subform returned.
+  "Returns four values:
 
-This function takes local function and macro definitions appearing in
-FORM into account."
-  (labels 
+     The appropriate subform of `form' which is closest to the
+     +CURSOR-MARKER+ and whose operator is valid and has an
+     arglist. The +CURSOR-MARKER+ is removed from that subform.
+
+     Second value is the arglist. Local function and macro definitions
+     appearing in `form' into account.
+
+     Third value is the object in front of +CURSOR-MARKER+.
+
+     Fourth value is a form path to that object."
+  (labels
       ((yield-success (form local-ops)
-         (let ((form (remove-from-tree +cursor-marker+ form)))
+         (multiple-value-bind (form obj-at-cursor form-path)
+             (extract-cursor-marker form)
            (values form
                    (let ((entry (assoc (car form) local-ops :test #'op=)))
                      (if entry
                          (decode-arglist (cdr entry))
-                         (arglist-from-form form))))))
+                         (arglist-from-form form)))
+                   obj-at-cursor
+                   form-path)))
        (yield-failure ()
          (values nil :not-available))
        (operator-p (operator local-ops)
@@ -1239,110 +1244,162 @@ FORM into account."
         (yield-failure)
         (grovel-form form '()))))
 
-(flet ((collect-op/argl-alist (defs)
-         (setq defs (remove-if-not #'(lambda (x)
-                                       ;; Well-formed FLET/LABELS def?
-                                       (and (consp x) (second x)))
-                                   defs))
-         (loop for (name arglist . nil) in defs
-               collect (cons name arglist))))
-  (defgeneric extract-local-op-arglists (operator args)
-    (:documentation
-     "If the form `(OPERATOR ,@ARGS) is a local operator binding form,
+(defun extract-cursor-marker (form)
+  "Returns three values: normalized `form' without +CURSOR-MARKER+,
+the object in front of +CURSOR-MARKER+, and a form path to that
+object."
+  (labels ((grovel (form last path)
+             (let ((result-form))
+               (loop for (car . cdr) on form do
+                     (cond ((eql car +cursor-marker+)
+                            (decf (first path))
+                            (return-from grovel
+                              (values (nreconc result-form cdr)
+                                      last
+                                      (nreverse path))))
+                           ((consp car)
+                            (multiple-value-bind (new-car new-last new-path)
+                                (grovel car last (cons 0 path))
+                              (when new-path ; CAR contained cursor-marker?
+                                (return-from grovel
+                                  (values (nreconc
+                                           (cons new-car result-form) cdr)
+                                          new-last
+                                          new-path))))))
+                     (push car result-form)
+                     (setq last car)
+                     (incf (first path))
+                     finally
+                       (return-from grovel
+                         (values (nreverse result-form) nil nil))))))
+    (grovel form nil (list 0))))
+
+(defgeneric extract-local-op-arglists (operator args)
+  (:documentation
+   "If the form `(OPERATOR ,@ARGS) is a local operator binding form,
      return a list of pairs (OP . ARGLIST) for each locally bound op.")
-    (:method (operator args)
-      (declare (ignore operator args))
-      nil)
-    ;; FLET
-    (:method ((operator (eql 'cl:flet)) args)
-      (let ((defs (first args))
-            (body (rest args)))
-        (cond ((null body) nil)         ; `(flet ((foo (x) |'
-              ((atom defs) nil)         ; `(flet ,foo (|'
-              (t (collect-op/argl-alist defs)))))
-    ;; LABELS
-    (:method ((operator (eql 'cl:labels)) args)
-      ;; Notice that we only have information to "look backward" and
-      ;; show arglists of previously occuring local functions.
-      (let ((defs (first args))
-            (body (rest args)))
-        (cond ((atom defs) nil)
-              ((not (null body))
-               (extract-local-op-arglists 'cl:flet args))
-              (t
-               (let ((def.body (cddr (car (last defs)))))
-                 (when def.body
-                   (collect-op/argl-alist defs)))))))
-    ;; MACROLET
-    (:method ((operator (eql 'cl:macrolet)) args)
-      (extract-local-op-arglists 'cl:labels args))))
+  (:method (operator args)
+    (declare (ignore operator args))
+    nil)
+  ;; FLET
+  (:method ((operator (eql 'cl:flet)) args)
+    (let ((defs (first args))
+          (body (rest args)))
+      (cond ((null body) nil)            ; `(flet ((foo (x) |'
+            ((atom defs) nil)            ; `(flet ,foo (|'
+            (t (%collect-op/argl-alist defs)))))
+  ;; LABELS
+  (:method ((operator (eql 'cl:labels)) args)
+    ;; Notice that we only have information to "look backward" and
+    ;; show arglists of previously occuring local functions.
+    (destructuring-bind (defs . body) args
+      (unless (or (atom defs) (null body))   ; `(labels ,foo (|'
+        (let ((current-def (car (last defs))))
+          (cond ((atom current-def) nil) ; `(labels ((foo (x) ...)|'
+                ((not (null body))
+                 (extract-local-op-arglists 'cl:flet args))
+                (t
+                 (let ((def.body (cddr current-def)))
+                   (when def.body
+                     (%collect-op/argl-alist defs)))))))))
+  ;; MACROLET
+  (:method ((operator (eql 'cl:macrolet)) args)
+    (extract-local-op-arglists 'cl:labels args)))
+
+(defun %collect-op/argl-alist (defs)
+  (setq defs (remove-if-not #'(lambda (x)
+                                ;; Well-formed FLET/LABELS def?
+                                (and (consp x) (second x)))
+                            defs))
+  (loop for (name arglist . nil) in defs
+        collect (cons name arglist)))
 
 (defun find-immediately-containing-arglist (form)
-  "Returns the arglist of the form immediately containing
-+CURSOR-MARKER+ in form. Notice, however, as +CURSOR-MARKER+ may be in
-a nested arglist \(e.g. `(WITH-OPEN-FILE (|'\), the appropriate parent
-form may in fact be considered."
-  (multiple-value-bind (form arglist) (find-subform-with-arglist form)
-    (if (eql arglist :not-available)
-        (values :not-available nil)
-        (let ((provided-args (cdr form)))
-          (multiple-value-bind (last-arg last-provd-arg)
-              (last-arg arglist provided-args)
-            (cond
-              ;; Are we stuck in a nested arglist?
-              ((and (arglist-p last-arg) (listp last-provd-arg))
-               (let* ((path (arglist-path-to-nested-arglist arglist provided-args))
-                      (argl (apply #'arglist-ref arglist path))
-                      (args (apply #'provided-arguments-ref
-                                   provided-args arglist path)))
-                 (values argl args)))
-              ;; We aren't in a nested arglist, so we couldn't
-              ;; actually find any arglist for the form that the
-              ;; cursor is immediately contained in.
-              ((consp last-provd-arg)
-               (values :not-available nil))
-              (t
-               (values arglist provided-args))))))))
+  "Returns the arglist of the subform _immediately_ containing
++CURSOR-MARKER+ in `form'. Notice, however, that +CURSOR-MARKER+ may
+be in a nested arglist \(e.g. `(WITH-OPEN-FILE (<here>'\), and the
+arglist of the appropriate parent form \(WITH-OPEN-FILE\) will be
+returned in that case."
+  (flet ((try (form-path form arglist)
+           (let* ((arglist-path (form-path-to-arglist-path form-path
+                                                           form
+                                                           arglist))
+                  (argl (apply #'arglist-ref
+                               arglist
+                               arglist-path))
+                  (args (apply #'provided-arguments-ref
+                               (cdr form)
+                               arglist
+                               arglist-path)))
+             (when (and (arglist-p argl) (listp args))
+               (values argl args)))))
+    (multiple-value-bind (form arglist obj form-path)
+        (find-subform-with-arglist form)
+      (declare (ignore obj))
+      (with-available-arglist (arglist) arglist
+        ;; First try the form the cursor is in (in case of a normal
+        ;; form), then try the surrounding form (in case of a nested
+        ;; macro form).
+        (multiple-value-or (try form-path form arglist)
+                           (try (butlast form-path) form arglist)
+                           :not-available)))))
 
-(defun arglist-path-to-parameter (arglist provided-args)
-  "Returns a path to the arglist parameter that the last argument in
-PROVIDED-ARGS would take up on application."
-  (let* ((path (arglist-path-to-nested-arglist arglist provided-args))
-         (argl (apply #'arglist-ref arglist path))
-         (provided-arg (apply #'provided-arguments-ref provided-args arglist path)))
-    (nconc path (list (compute-arglist-index argl provided-arg)))))
+(defun form-path-to-arglist-path (form-path form arglist)
+  "Convert a form path to an arglist path consisting of arglist
+indices."
+  (labels ((convert (path args arglist)
+             (if (null path)
+                 nil
+                 (let* ((idx      (car path))
+                        (idx*     (arglist-index idx args arglist))
+                        (arglist* (and idx* (arglist-ref arglist idx*)))
+                        (args*    (and idx* (provided-arguments-ref args
+                                                                    arglist
+                                                                    idx*))))
+                   ;; The FORM-PATH may be more detailed than ARGLIST;
+                   ;; consider (defun foo (x y) ...), a form path may
+                   ;; point into the function's lambda-list, but the
+                   ;; arglist of DEFUN won't contain as much information.
+                   ;; So we only recurse if possible.
+                   (cond ((null idx*)
+                          nil)
+                         ((arglist-p arglist*)
+                          (cons idx* (convert (cdr path) args* arglist*)))
+                         (t
+                          (list idx*)))))))
+    (convert
+     ;; FORM contains irrelevant operator. Adjust FORM-PATH.
+     (cond ((null form-path) nil)
+           ((equal form-path '(0)) nil)
+           (t
+            (destructuring-bind (car . cdr) form-path
+              (cons (1- car) cdr))))
+     (cdr form)
+     arglist)))
 
-(defun arglist-path-to-nested-arglist (arglist provided-args)
-  "Returns a path to the (nested) arglist that still contains the last
-argument in PROVIDED-ARGS."
-  (multiple-value-bind (last-arg last-provd-arg idx)
-      (last-arg arglist provided-args)
-    (if (and (arglist-p last-arg) (listp last-provd-arg))
-        (cons idx (arglist-path-to-nested-arglist last-arg last-provd-arg))
-        nil)))
-
-(defun last-arg (arglist provided-args)
-  (let ((idx (compute-arglist-index arglist provided-args)))
-    (when idx
-      (values (arglist-ref arglist idx)
-              (provided-arguments-ref provided-args arglist idx)
-              idx))))
-
-(defun compute-arglist-index (arglist provided-args)
-  "Returns the index of ARGLIST pertaining to the last argument in
-PROVIDED-ARGUMENTS."
-  (let ((arg-index (1- (length provided-args)))
-        (positional-args# (positional-args-number arglist)))
-    (cond
-      ((< arg-index 0) nil)
-      ((< arg-index positional-args#) arg-index)        ; required + optional
-      ((not (arglist.key-p arglist))  positional-args#) ; rest + body
-      (t                                                ; key
-       ;; Find last provided &key parameter
-       (let ((provided-keys (subseq provided-args positional-args#)))
-         (loop for (key nil . rest) on provided-keys by #'cddr
-               when (null rest) 
-                 return (and (symbolp key) key)))))))
+(defun arglist-index (provided-argument-index provided-arguments arglist)
+  "Return the arglist index into `arglist' for the parameter belonging
+to the argument (NTH `provided-argument-index' `provided-arguments')."
+  (let ((positional-args# (positional-args-number arglist))
+        (arg-index provided-argument-index))
+    (with-struct (arglist. key-p rest) arglist
+      (cond
+        ((< arg-index positional-args#) ; required + optional
+         arg-index)
+        ((and (not key-p) (not rest))   ; more provided than allowed
+         nil)
+        ((not key-p)                    ; rest + body
+         (assert (arglist.rest arglist))
+         positional-args#) 
+        (t                              ; key
+         ;; Find last provided &key parameter
+         (let* ((argument      (nth arg-index provided-arguments))
+                (provided-keys (subseq provided-arguments positional-args#)))
+           (loop for (key value) on provided-keys by #'cddr
+                 when (eq value argument)
+                 return (match key
+                            (('quote symbol) symbol)
+                            (_ key)))))))))
 
 (defun arglist-ref (arglist &rest indices)
   "Returns the parameter in ARGLIST along the INDICIES path. Numbers
@@ -1361,10 +1418,14 @@ represent key parameters."
                      do (decf index args#)
                    finally (return (or rest nil)))))
          (ref-keyword-arg (arglist keyword)
-           (assert (symbolp keyword) (keyword))
-           (do-decoded-arglist arglist
-             (&key (kw arg) (when (eq kw keyword)
-                              (return-from ref-keyword-arg arg))))
+           ;; keyword argument may be any symbol,
+           ;; not only from the KEYWORD package.
+           (let ((keyword (match keyword
+                            (('quote symbol) symbol)
+                            (_ keyword))))
+             (do-decoded-arglist arglist
+               (&key (kw arg) (when (eq kw keyword)
+                                (return-from ref-keyword-arg arg)))))
            nil))
     (dolist (index indices)
       (assert (arglist-p arglist))
@@ -1376,10 +1437,12 @@ represent key parameters."
 (defun provided-arguments-ref (provided-args arglist &rest indices)
   "Returns the argument in PROVIDED-ARGUMENT along the INDICES path
 relative to ARGLIST."
+  (check-type arglist arglist)
   (flet ((ref (provided-args arglist index)
            (if (numberp index)
                (nth index provided-args)
-               (let ((provided-keys (subseq provided-args (positional-args-number arglist))))
+               (let ((provided-keys (subseq provided-args
+                                            (positional-args-number arglist))))
                  (loop for (key value) on provided-keys
                        when (eq key index)
                          return value)))))
@@ -1420,20 +1483,29 @@ ARGLIST-DUMMY is returned instead, which works as a placeholder
 datum for subsequent logics to rely on."
   (let* ((string  (string-left-trim '(#\Space #\Tab #\Newline) string))
          (length  (length string))
-	 (prefix  (cond ((zerop length) nil)
-                        ((eql (aref string 0) #\') :quote)
-                        ((search "#'" string :end2 (min length 2)) :sharpquote)
-                        (t nil))))
+	 (type    (cond ((zerop length) nil)
+                        ((eql (aref string 0) #\')
+                         :quoted-symbol)
+                        ((search "#'" string :end2 (min length 2))
+                         :sharpquoted-symbol)
+                        ((and (eql (aref string 0) #\")
+                              (eql (aref string (1- length)) #\"))
+                         :string)
+                        (t
+                         :symbol))))
     (multiple-value-bind (symbol found?)
-	(parse-symbol (case prefix
-                        (:quote      (subseq string 1))
-                        (:sharpquote (subseq string 2))
-                        (t string)))
+	(case type
+          (:symbol             (parse-symbol string))
+          (:quoted-symbol      (parse-symbol (subseq string 1)))
+          (:sharpquoted-symbol (parse-symbol (subseq string 2)))
+          (:string             (values string t))
+          (t                   (values string nil)))
       (if found?
-          (case prefix
-            (:quote      `(quote ,symbol))
-            (:sharpquote `(function ,symbol))
-            (t symbol))
+          (ecase type
+            (:symbol             symbol)
+            (:quoted-symbol      `(quote ,symbol))
+            (:sharpquoted-symbol `(function ,symbol))
+            (:string             string))
 	  (make-arglist-dummy string)))))
   
 (defun test-print-arglist ()

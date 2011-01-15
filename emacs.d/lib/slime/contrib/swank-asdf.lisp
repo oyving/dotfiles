@@ -69,7 +69,8 @@ Example:
     (asdf:compile-error () nil)))
 
 (defun asdf-central-registry ()
-  asdf:*central-registry*)
+  (append asdf:*central-registry*
+          #+asdf2 (asdf:ensure-source-registry)))
 
 (defslimefun list-all-systems-in-central-registry ()
   "Returns a list of all systems in ASDF's central registry."
@@ -134,8 +135,9 @@ already knows."
         files)))
 
 (defslimefun asdf-system-loaded-p (name)
-  (gethash 'asdf:load-op
-           (asdf::component-operation-times (asdf:find-system name))))
+  (and (gethash 'asdf:load-op
+                (asdf::component-operation-times (asdf:find-system name)))
+       t))
 
 (defslimefun asdf-system-directory (name)
   (cl:directory-namestring
@@ -187,15 +189,26 @@ already knows."
 
 (defvar *recompile-system* nil)
 
-#+#.(swank-backend:with-symbol 'around 'asdf)
-(defmethod asdf:operation-done-p asdf:around ((operation asdf:compile-op)
-                                              component)
-  (unless (eql *recompile-system*
-               (asdf:component-system component))
-    (call-next-method)))
+(defmethod asdf:operation-done-p
+    #+#.(swank-backend:with-symbol 'around 'asdf) asdf:around
+    #-#.(swank-backend:with-symbol 'around 'asdf) :around
+    ((operation asdf:compile-op)
+     component)
+    (unless (eql *recompile-system*
+                 (asdf:component-system component))
+      (call-next-method)))
 
 (defslimefun reload-system (name)
   (let ((*recompile-system* (asdf:find-system name)))
     (operate-on-system-for-emacs name 'asdf:load-op)))
+
+;; Doing list-all-systems-in-central-registry might be quite slow
+;; since it accesses a file-system, so run it once at the background
+;; to initialize caches.
+(eval-when (:load-toplevel :execute)
+  (when (eql *communication-style* :spawn)
+    (spawn (lambda ()
+             (ignore-errors (list-all-systems-in-central-registry)))
+           :name "init-asdf-fs-caches")))
 
 (provide :swank-asdf)
