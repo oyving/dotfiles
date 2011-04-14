@@ -29,7 +29,7 @@ export PS1='$(__git_ps1 "(%s) ")\w \$ '
 
 case "$(uname)" in
     Darwin)
-        PATH=$HOME/Library/Python/2.7/bin:$PATH
+        PATH=$HOME/Library/Python/2.7/bin:/opt/local/bin:$PATH
         alias ls='ls -G'
         ;;
 esac
