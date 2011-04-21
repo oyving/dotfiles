@@ -14,7 +14,6 @@
 /swank-r6rs.scm/1.1/Tue Jun 23 18:11:14 2009//
 /swank-sbcl-exts.lisp/1.4/Fri Sep 25 06:43:33 2009//
 /swank.rb/1.2/Sun Jul 12 08:01:10 2009//
-/ChangeLog/1.429/Sat Jan 15 01:26:45 2011//
 /inferior-slime.el/1.11/Sat Jan 15 01:26:45 2011//
 /slime-asdf.el/1.32/Sat Jan 15 01:26:45 2011//
 /slime-autodoc.el/1.47/Sat Jan 15 01:26:45 2011//
@@ -22,7 +21,6 @@
 /slime-c-p-c.el/1.26/Sat Jan 15 01:26:45 2011//
 /slime-clipboard.el/1.8/Sat Jan 15 01:26:45 2011//
 /slime-compiler-notes-tree.el/1.7/Sat Jan 15 01:26:45 2011//
-/slime-editing-commands.el/1.12/Sat Jan 15 01:26:45 2011//
 /slime-enclosing-context.el/1.9/Sat Jan 15 01:26:45 2011//
 /slime-fancy-inspector.el/1.8/Sat Jan 15 01:26:45 2011//
 /slime-fancy.el/1.13/Sat Jan 15 01:26:45 2011//
@@ -40,11 +38,9 @@
 /slime-presentation-streams.el/1.5/Sat Jan 15 01:26:45 2011//
 /slime-presentations.el/1.38/Sat Jan 15 01:26:45 2011//
 /slime-references.el/1.7/Sat Jan 15 01:26:45 2011//
-/slime-repl.el/1.52/Sat Jan 15 01:26:45 2011//
 /slime-sbcl-exts.el/1.7/Sat Jan 15 01:26:45 2011//
 /slime-scratch.el/1.8/Sat Jan 15 01:26:45 2011//
 /slime-snapshot.el/1.6/Sat Jan 15 01:26:45 2011//
-/slime-sprof.el/1.14/Sat Jan 15 01:26:45 2011//
 /slime-tramp.el/1.6/Sat Jan 15 01:26:45 2011//
 /slime-typeout-frame.el/1.11/Sat Jan 15 01:26:45 2011//
 /slime-xref-browser.el/1.6/Sat Jan 15 01:26:45 2011//
@@ -55,9 +51,13 @@
 /swank-fuzzy.lisp/1.12/Sat Jan 15 01:26:45 2011//
 /swank-kawa.scm/1.24/Sat Jan 15 01:26:46 2011//
 /swank-media.lisp/1.1/Thu Sep 16 13:24:20 2010//
-/swank-mit-scheme.scm/1.7/Sat Jan 15 01:26:46 2011//
 /swank-package-fu.lisp/1.5/Sat Jan 15 01:26:46 2011//
 /swank-presentations.lisp/1.7/Sat Jan 15 01:26:46 2011//
 /swank-snapshot.lisp/1.3/Sat Jan 15 01:26:46 2011//
-/swank-sprof.lisp/1.5/Sat Jan 15 01:26:46 2011//
+/ChangeLog/1.434/Thu Apr 21 23:42:01 2011//
+/slime-editing-commands.el/1.13/Thu Apr 21 23:42:01 2011//
+/slime-repl.el/1.53/Thu Apr 21 23:42:01 2011//
+/slime-sprof.el/1.15/Thu Apr 21 23:42:01 2011//
+/swank-mit-scheme.scm/1.8/Thu Apr 21 23:42:01 2011//
+/swank-sprof.lisp/1.6/Thu Apr 21 23:42:01 2011//
 D

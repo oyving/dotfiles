@@ -15,23 +15,23 @@
 D/contrib////
 D/doc////
 /.cvsignore/1.6/Sat Jan 15 01:26:42 2011//
-/ChangeLog/1.2168/Sat Jan 15 01:26:43 2011//
 /README/1.16/Sat Jan 15 01:26:43 2011//
 /hyperspec.el/1.16/Sat Jan 15 01:26:43 2011//
-/slime.el/1.1352/Sat Jan 15 01:26:43 2011//
 /start-swank.lisp/1.2/Sun Mar 21 13:45:28 2010//
 /swank-abcl.lisp/1.85/Sat Jan 15 01:26:43 2011//
-/swank-allegro.lisp/1.142/Sat Jan 15 01:26:43 2011//
 /swank-backend.lisp/1.205/Sat Jan 15 01:26:44 2011//
 /swank-ccl.lisp/1.22/Sat Jan 15 01:26:44 2011//
 /swank-clisp.lisp/1.95/Sat Jan 15 01:26:44 2011//
 /swank-cmucl.lisp/1.232/Sat Jan 15 01:26:44 2011//
 /swank-corman.lisp/1.25/Sat Jan 15 01:26:44 2011//
-/swank-ecl.lisp/1.67/Sat Jan 15 01:26:44 2011//
 /swank-lispworks.lisp/1.141/Sat Jan 15 01:26:44 2011//
 /swank-loader.lisp/1.110/Sat Jan 15 01:26:44 2011//
 /swank-rpc.lisp/1.7/Sat Oct  9 23:02:33 2010//
 /swank-sbcl.lisp/1.279/Sat Jan 15 01:26:44 2011//
 /swank-scl.lisp/1.37/Sat Jan 15 01:26:44 2011//
 /swank-source-file-cache.lisp/1.11/Sat Jan 15 01:26:44 2011//
-/swank.lisp/1.734/Sat Jan 15 01:26:45 2011//
+/ChangeLog/1.2187/Thu Apr 21 23:42:01 2011//
+/slime.el/1.1363/Thu Apr 21 23:42:01 2011//
+/swank-allegro.lisp/1.143/Thu Apr 21 23:42:01 2011//
+/swank-ecl.lisp/1.68/Thu Apr 21 23:42:01 2011//
+/swank.lisp/1.742/Thu Apr 21 23:42:01 2011//
