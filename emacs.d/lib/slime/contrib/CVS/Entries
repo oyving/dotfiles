@@ -5,7 +5,6 @@
 /swank-goo.goo/1.4/Tue Jul 21 11:02:42 2009//
 /swank-hyperdoc.lisp/1.1/Thu Dec  3 15:54:49 2009//
 /swank-ikarus.ss/1.1/Tue Jun 23 18:11:13 2009//
-/swank-indentation.lisp/1.1/Sun Feb  3 18:45:14 2008//
 /swank-jolt.k/1.2/Tue Jul 21 11:02:42 2009//
 /swank-larceny.scm/1.1/Tue Jun 23 18:11:14 2009//
 /swank-listener-hooks.lisp/1.3/Thu Oct 30 09:28:21 2008//
@@ -28,19 +27,16 @@
 /slime-fuzzy.el/1.22/Sat Jan 15 01:26:45 2011//
 /slime-highlight-edits.el/1.7/Sat Jan 15 01:26:45 2011//
 /slime-hyperdoc.el/1.4/Sat Jan 15 01:26:45 2011//
-/slime-indentation.el/1.6/Sat Jan 15 01:26:45 2011//
 /slime-mdot-fu.el/1.5/Sat Jan 15 01:26:45 2011//
 /slime-media.el/1.1/Thu Sep 16 13:24:20 2010//
 /slime-motd.el/1.4/Sat Jan 15 01:26:45 2011//
 /slime-mrepl.el/1.6/Sat Jan 15 01:26:45 2011//
-/slime-package-fu.el/1.12/Sat Jan 15 01:26:45 2011//
 /slime-parse.el/1.39/Sat Jan 15 01:26:45 2011//
 /slime-presentation-streams.el/1.5/Sat Jan 15 01:26:45 2011//
 /slime-presentations.el/1.38/Sat Jan 15 01:26:45 2011//
 /slime-references.el/1.7/Sat Jan 15 01:26:45 2011//
 /slime-sbcl-exts.el/1.7/Sat Jan 15 01:26:45 2011//
 /slime-scratch.el/1.8/Sat Jan 15 01:26:45 2011//
-/slime-snapshot.el/1.6/Sat Jan 15 01:26:45 2011//
 /slime-tramp.el/1.6/Sat Jan 15 01:26:45 2011//
 /slime-typeout-frame.el/1.11/Sat Jan 15 01:26:45 2011//
 /slime-xref-browser.el/1.6/Sat Jan 15 01:26:45 2011//
@@ -54,10 +50,15 @@
 /swank-package-fu.lisp/1.5/Sat Jan 15 01:26:46 2011//
 /swank-presentations.lisp/1.7/Sat Jan 15 01:26:46 2011//
 /swank-snapshot.lisp/1.3/Sat Jan 15 01:26:46 2011//
-/ChangeLog/1.434/Thu Apr 21 23:42:01 2011//
 /slime-editing-commands.el/1.13/Thu Apr 21 23:42:01 2011//
 /slime-repl.el/1.53/Thu Apr 21 23:42:01 2011//
 /slime-sprof.el/1.15/Thu Apr 21 23:42:01 2011//
 /swank-mit-scheme.scm/1.8/Thu Apr 21 23:42:01 2011//
 /swank-sprof.lisp/1.6/Thu Apr 21 23:42:01 2011//
+/ChangeLog/1.464/Mon Jun  6 00:18:36 2011//
+/slime-cl-indent.el/1.26/Sat Jun  4 18:20:15 2011//
+/slime-indentation.el/1.7/Mon Jun  6 00:18:36 2011//
+/slime-package-fu.el/1.15/Mon Jun  6 00:18:36 2011//
+/slime-snapshot.el/1.7/Mon Jun  6 00:18:36 2011//
+/swank-indentation.lisp/1.3/Mon Jun  6 00:18:36 2011//
 D
