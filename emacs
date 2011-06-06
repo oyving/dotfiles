@@ -63,12 +63,12 @@
 
 ;; add scala-mode
 (add-to-list 'load-path (expand-file-name "~/.emacs.d/lib/scala-mode"))
-(when (require 'scala-mode-auto nil nil)
+(when (require 'scala-mode-auto nil t)
   (setf scala-mode-indent:step 4))
 
 ;; add slime for lispy goodness
 (add-to-list 'load-path (expand-file-name "~/.emacs.d/lib/slime"))
-(when (require 'slime nil nil)
+(when (require 'slime nil t)
   (setf inferior-lisp-program "/opt/local/bin/sbcl")
   (slime-setup))
 
