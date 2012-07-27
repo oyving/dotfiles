@@ -1,6 +1,4 @@
-;;;
-;;; .emacs -- emacs configuration for oyving
-;;;
+;; -*- mode: lisp -*-
 
 ;; require some core modules
 (require 'cl)
@@ -9,13 +7,6 @@
 ;; add the package repository
 (add-to-list 'package-archives
              '("melpa" . "http://melpa.milkbox.net/packages/") t)
-
-;; on a Mac we want some other settings
-(when (eq window-system 'ns)
-  ;; get a black background and white font as default
-  (setq default-frame-alist
-	'((foreground-color . "white")
-	  (background-color . "black"))))
 
 ;; turn off some of the more annoying features appearing after Emacs 21
 (when (>= emacs-major-version 21)
