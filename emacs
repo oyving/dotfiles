@@ -10,7 +10,15 @@
 ;; add the package repository
 (add-to-list 'package-archives
              '("melpa" . "http://melpa.milkbox.net/packages/") t)
+
 (package-initialize)
+
+(defun package-ensure-installed (package)
+  (unless (package-installed-p package)
+    (package-install package)))
+
+(package-ensure-installed 'slime)
+
 
 ;; turn off some of the more annoying features appearing after Emacs 21
 (when (>= emacs-major-version 21)
