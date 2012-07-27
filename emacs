@@ -5,6 +5,10 @@
 ;; require some core modules
 (require 'cl)
 
+;; add the package repository
+(add-to-list 'package-archives
+             '("melpa" . "http://melpa.milkbox.net/packages/") t)
+
 ;; on a Mac we want some other settings
 (when (eq window-system 'ns)
   ;; get a black background and white font as default
@@ -57,20 +61,6 @@
 
 ;; use org-mode for .org files
 (add-to-list 'auto-mode-alist '("\\.org\\'" . org-mode))
-
-;; set load-path
-(add-to-list 'load-path (expand-file-name "~/.emacs.d/lib"))
-
-;; add scala-mode
-(add-to-list 'load-path (expand-file-name "~/.emacs.d/lib/scala-mode"))
-(when (require 'scala-mode-auto nil t)
-  (setf scala-mode-indent:step 4))
-
-;; add slime for lispy goodness
-(add-to-list 'load-path (expand-file-name "~/.emacs.d/lib/slime"))
-(when (require 'slime nil t)
-  (setf inferior-lisp-program "/opt/local/bin/sbcl")
-  (slime-setup))
 
 ;; start the emacs server
 (server-start)
