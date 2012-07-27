@@ -4,6 +4,7 @@
 
 ;; require some core modules
 (require 'cl)
+(require 'package)
 
 ;; add the package repository
 (add-to-list 'package-archives
@@ -51,7 +52,6 @@
 
 ;; ensure UTF-8
 (set-language-environment "UTF-8")
-(setq-default enable-multibyte-characters t)
 
 ;; get custom configuration into a different file
 (setq custom-file (expand-file-name "~/.emacs.d/custom.el"))
