@@ -25,3 +25,5 @@ export GIT_PS1_SHOWDIRTYSTATE=true     # * for unstaged, + for staged
 export GIT_PS1_SHOWSTASHSTATE=true     # $ if stashes in repo
 export GIT_PS1_SHOWUNTRACKEDFILES=true # % if untracked files in repo
 export PS1='$(__git_ps1 "(\[\033[0;32m\]%s\[\033[m\]) ")\w \[\033[1;37m\]\$\[\033[m\] '
+
+export PATH=/opt/local/bin:$PATH
