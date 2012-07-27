@@ -4,9 +4,13 @@
 (require 'cl)
 (require 'package)
 
+;; load the customize file
+(load-file "~/.emacs.d/custom.el")
+
 ;; add the package repository
 (add-to-list 'package-archives
              '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(package-initialize)
 
 ;; turn off some of the more annoying features appearing after Emacs 21
 (when (>= emacs-major-version 21)
